@@ -1,42 +1,83 @@
-# Function for converting jld file to h5 file, specifically 
-#   tested to be opened in Matlab
-
 using HDF5, JLD
 
-function jld2h5(filename::String)   
-    # add check that extension is jld
-    Nchar = length(filename)
-    fileBase = filename[1:Nchar-4]
-    if filename[Nchar-3:Nchar] != ".jld"
-        error("input file was not *.jld")
+function jld2h5(JLDfileName::String)
+    checkExtensionIsJLD(JLDfileName)
+
+    dict = load(JLDfileName)
+    h5IO = createIOStreamForH5(JLDfileName)
+    writeJLDDataToH5(h5IO,dict)
+    close(h5IO)
+
+    nothing
+end
+
+function checkExtensionIsJLD(fileName::String)
+    nCharsInFile = length(fileName)
+    fileExtension = fileName[nCharsInFile-3 : nCharsInFile]
+    if fileExtension != ".jld"
+        error("input extension was '$(fileExtension)', not '.jld'")
     end
+end
 
-    # load jld file into dictionary
-    d = load(filename)
+function getFileBase(fileName::String)
+    nCharsInFile = length(fileName)
+    fileBase = fileName[1 : nCharsInFile-4]
+    return fileBase
+end
 
-    # save dictionary d into h5 format
-    h5filename = string(fileBase,".h5")
-    fid = h5open(h5filename, "w")
-    for k in keys(d)
-        # check for StepRangeLen
-        if typeof(d[k]) == StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}
-            println("StepRangeLen converted to Vector")
-            d[k] = collect(d[k])
-        end
-        # check for array of arrays
-        if typeof(d[k]) == Array{Array{Float64,1},1}
-            n1 = length(d[k])
-            n2 = length(d[k][1])
-            newArr = zeros(Float64,n1,n2)
-            for i=1:n1, j=1:n2
-                newArr[i,j] = d[k][i][j]
-            end
-            println("Array of Array converted to matrix")
-            d[k] = newArr
-        end
-        write(fid, string(k), d[k])
+function createIOStreamForH5(fileName::String)
+    fileBase = getFileBase(fileName)
+    h5FileName = string(fileBase,".h5")
+    h5IO = h5open(h5FileName, "w")
+    return h5IO
+end
+
+function writeJLDDataToH5(h5IO,dict)
+    for key in keys(dict)
+        checkAndModifyDataIfSpecialCase(dict,key)
+        write(h5IO, string(key), dict[key])
     end
-    close(fid)
+end
 
+function valueIsStepRangeLen(value)
+    if typeof(value) == StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}
+        return true
+    else
+        return false
+    end
+end
+
+function modifyForStepRangeLen!(dict,key)
+    println("StepRangeLen converted to Vector")
+    dict[key] = collect(dict[key])
+    nothing
+end
+
+function valueIsArrayOfArrays(value)
+    if typeof(value) == Array{Array{Float64,1},1}
+        return true
+    else
+        return false
+    end
+end
+
+function modifyForArrayOfArrays!(dict,key)
+    n1 = length(dict[key])
+    n2 = length(dict[key][1])
+    newArr = zeros(Float64,n1,n2)
+    for i=1:n1, j=1:n2
+        newArr[i,j] = dict[key][i][j]
+    end
+    println("Array of Array converted to matrix")
+    dict[key] = newArr
+    nothing
+end
+
+function checkAndModifyDataIfSpecialCase(dict,key)
+    if valueIsStepRangeLen(dict[key])
+        modifyForStepRangeLen!(dict,key)
+    elseif valueIsArrayOfArrays(dict[key])
+        modifyForArrayOfArrays!(dict,key)
+    end
     nothing
 end
