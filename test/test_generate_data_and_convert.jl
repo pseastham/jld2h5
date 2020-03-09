@@ -1,14 +1,14 @@
-# test file to generate and convert jld data into hdf5
+# test file to generate and convert jld2 data into hdf5
 
-using JLD, HDF5
+using JLD2, HDF5
 
 include("../src/jld2h5.jl")
 
 function run_test()
-    datafn = "data.jld"
+    datafn = "data.jld2"
 
     # =====================================
-    # Generate data and save in *.jld file
+    # Generate data and save in *.jld2 file
     # =====================================
     arr1 = rand(7)
     arr2 = range(0.0,stop=1.0,length=4)
@@ -41,7 +41,7 @@ function run_test()
     close(f)
 
     # ==============================================
-    # load back same jld data (verification of JLD)
+    # load back same jld2 data (verification of JLD2)
     # ==============================================
     arr1TEST = load(datafn,"arr1")
     arr2TEST = load(datafn,"arr2")
@@ -53,7 +53,7 @@ function run_test()
        (arr2 != arr2TEST) ||
        (mat1 != mat1TEST) ||
        (f1   != f1TEST)  
-        error("JLD save failed to preserve accuracy")
+        error("JLD2 save failed to preserve accuracy")
     end
 
     # =========================

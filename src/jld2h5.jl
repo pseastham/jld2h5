@@ -1,4 +1,4 @@
-using HDF5, JLD
+using HDF5, JLD2
 
 function jld2h5(JLDfileName::String)
     checkExtensionIsJLD(JLDfileName)
@@ -13,15 +13,15 @@ end
 
 function checkExtensionIsJLD(fileName::String)
     nCharsInFile = length(fileName)
-    fileExtension = fileName[nCharsInFile-3 : nCharsInFile]
-    if fileExtension != ".jld"
-        error("input extension was '$(fileExtension)', not '.jld'")
+    fileExtension = fileName[nCharsInFile-4 : nCharsInFile]
+    if fileExtension != ".jld2"
+        error("input extension was '$(fileExtension)', not '.jld2'")
     end
 end
 
 function getFileBase(fileName::String)
     nCharsInFile = length(fileName)
-    fileBase = fileName[1 : nCharsInFile-4]
+    fileBase = fileName[1 : nCharsInFile-5]
     return fileBase
 end
 
